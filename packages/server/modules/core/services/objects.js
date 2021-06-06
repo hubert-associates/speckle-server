@@ -163,7 +163,7 @@ module.exports = {
         objsToInsert.push( insertionObject )
         ids.push( insertionObject.id )
       } )
-       
+
       if ( objsToInsert.length > 0 ) {
         let queryObjs = Objects( ).insert( objsToInsert ).toString( ) + ' on conflict do nothing'
         await knex.raw( queryObjs )
@@ -333,7 +333,7 @@ module.exports = {
 
             // Note: castType is generated from the statement's value and operators are matched against a whitelist.
             // If comparing with strings, the jsonb_path_query(_first) func returns json encoded strings (ie, `bar` is actually `"bar"`), hence we need to add the qoutes manually to the raw provided comparison value.
-            nestedWhereQuery[ whereClause ]( knex.raw( `jsonb_path_query_first( data, ? )::${castType} ${statement.operator} ?? `, [ '$.' + statement.field, castType === 'text' ? `"${statement.value}"` : statement.value ] ) )
+            nestedWhereQuery[ whereClause ]( knex.raw( `jsonb_path_query_first( data, ? )::${castType} ${statement.operator} ? `, [ '$.' + statement.field, castType === 'text' ? `"${statement.value}"` : statement.value ] ) )
           } )
         } )
       }
@@ -436,6 +436,31 @@ module.exports = {
     return res
   },
 
+  async getObjectsStream( { streamId, objectIds } ) {
+    let res = Objects( )
+      .whereIn( 'id', objectIds )
+      .andWhere( 'streamId', streamId )
+      .orderBy( 'id' )
+      .select( 'id', 'speckleType', 'totalChildrenCount', 'totalChildrenCountByDepth', 'createdAt', 'data' )
+    return res.stream( )
+  },
+
+  async hasObjects( { streamId, objectIds } ) {
+    let dbRes = await Objects( )
+      .whereIn( 'id', objectIds )
+      .andWhere( 'streamId', streamId )
+      .select( 'id' )
+
+    let res = {}
+    for ( let i in objectIds ) {
+      res[ objectIds[ i ] ] = false
+    }
+    for ( let i in dbRes ) {
+      res [ dbRes[ i ].id ] = true
+    }
+    return res
+  },
+  
   // NOTE: Derive Object
   async updateObject( ) {
     throw new Error( 'not implemeneted' )

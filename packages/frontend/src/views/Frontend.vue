@@ -1,7 +1,10 @@
 <template>
   <v-app id="speckle">
     <v-app-bar app>
-      <v-container class="py-0 fill-height hidden-sm-and-down">
+      <v-container
+        :fluid="$vuetify.breakpoint.mdAndDown"
+        class="py-0 fill-height hidden-sm-and-down"
+      >
         <v-btn text to="/" active-class="no-active">
           <v-img class="" contain max-height="30" max-width="30" src="@/assets/logo.svg" />
           <div class="logo">
@@ -20,10 +23,14 @@
           {{ link.name }}
         </v-btn> -->
         <v-spacer></v-spacer>
-        <v-responsive max-width="300">
+        <v-responsive v-if="user" max-width="300">
           <search-bar />
         </v-responsive>
-        <user-menu-top :user="user" />
+        <user-menu-top v-if="user" :user="user" />
+        <v-btn v-else color="primary" to="/authn/login">
+          <v-icon left>mdi-account-arrow-right</v-icon>
+          Logn in / Register
+        </v-btn>
       </v-container>
       <v-container class="hidden-md-and-up">
         <v-row>
@@ -62,13 +69,40 @@
             </v-btn>
           </v-col>
           <v-col class="text-right" style="margin-top: 5px">
-            <user-menu-top :user="user" />
+            <user-menu-top v-if="user" :user="user" />
           </v-col>
         </v-row>
       </v-container>
     </v-app-bar>
     <v-main :style="background">
       <router-view></router-view>
+      <v-snackbar
+        v-if="streamSnackbarInfo"
+        v-model="streamSnackbar"
+        :timeout="5000"
+        color="primary"
+        absolute
+        right
+        top
+      >
+        New stream
+        <i v-if="streamSnackbarInfo && streamSnackbarInfo.name">{{ streamSnackbarInfo.name }}</i>
+        <span v-else>available</span>
+        <template #action="{ attrs }">
+          <v-btn
+            v-if="streamSnackbarInfo"
+            text
+            v-bind="attrs"
+            :to="'/streams/' + streamSnackbarInfo.id"
+            @click="streamSnackbar = false"
+          >
+            see
+          </v-btn>
+          <v-btn icon v-bind="attrs" @click="streamSnackbar = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-main>
   </v-app>
 </template>
@@ -82,8 +116,9 @@ export default {
   components: { UserMenuTop, SearchBar },
   data() {
     return {
-      loggedIn: null,
       search: '',
+      streamSnackbar: false,
+      streamSnackbarInfo: {},
       showMobileMenu: false,
       streams: { items: [] },
       selectedSearchResult: null
@@ -108,13 +143,37 @@ export default {
       `
     },
     user: {
-      query: userQuery
+      query: userQuery,
+      skip() {
+        return !this.loggedIn
+      }
+    },
+
+    $subscribe: {
+      userStreamAdded: {
+        query: gql`
+          subscription {
+            userStreamAdded
+          }
+        `,
+        result(streamInfo) {
+          if (!streamInfo.data.userStreamAdded) return
+          this.streamSnackbar = true
+          this.streamSnackbarInfo = streamInfo.data.userStreamAdded
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      }
     }
   },
   computed: {
     background() {
       let theme = this.$vuetify.theme.dark ? 'dark' : 'light'
       return `background-color: ${this.$vuetify.theme.themes[theme].background};`
+    },
+    loggedIn() {
+      return localStorage.getItem('uuid') !== null
     }
   },
   watch: {
@@ -125,12 +184,20 @@ export default {
   methods: {}
 }
 </script>
-<style scoped>
+<style>
 .logo {
   font-family: Space Grotesk, sans-serif;
   text-transform: none;
   color: rgb(37, 99, 235);
   font-weight: 500;
   font-size: 1rem;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 1s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
 }
 </style>

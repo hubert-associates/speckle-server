@@ -21,11 +21,39 @@
       </v-btn>
     </v-card-title>
     <v-divider class="mx-4"></v-divider>
-    <v-card-text>
-      <p>
-        Updated
-        <timeago v-tooltip="formatDate(stream.updatedAt)" :datetime="stream.updatedAt"></timeago>
+    <v-card-text v-if="isHomeRoute && stream.commits.items.length !== 0">
+      <p class="mb-2">
+        Latest update:
+        <timeago :datetime="stream.commits.items[0].createdAt"></timeago>
       </p>
+      <v-chip
+        small
+        color="primary"
+        class="pa-2"
+        :to="
+          stream.commits.items[0].branchName.startsWith('globals')
+            ? `/streams/${stream.id}/${stream.commits.items[0].branchName}/${stream.commits.items[0].id}`
+            : `/streams/${stream.id}/commits/${stream.commits.items[0].id}`
+        "
+      >
+        <v-icon small class="mr-1">mdi-source-commit</v-icon>
+        {{ stream.commits.items[0].id }}
+      </v-chip>
+      on
+      <router-link
+        class="text-decoration-none"
+        :to="
+          stream.commits.items[0].branchName.startsWith('globals')
+            ? `/streams/${stream.id}/${stream.commits.items[0].branchName}`
+            : `/streams/${stream.id}/branches/${stream.commits.items[0].branchName}`
+        "
+      >
+        <v-icon small color="primary">mdi-source-branch</v-icon>
+        {{ stream.commits.items[0].branchName }}
+      </router-link>
+    </v-card-text>
+    <v-divider class="mx-4"></v-divider>
+    <v-card-text>
       <p>
         Created
         <timeago v-tooltip="formatDate(stream.createdAt)" :datetime="stream.createdAt"></timeago>
@@ -47,14 +75,17 @@
           commit{{ stream.commits.totalCount === 1 ? '' : 's' }}
         </span>
       </p>
-      <p>
-        <span v-if="stream.isPublic">
-          <v-icon small>mdi-link</v-icon>
-          &nbsp; link sharing on
+      <p class="font-weight-bold">
+        <span
+          v-if="stream.isPublic"
+          v-tooltip="`Anyone can view this stream. Only you and collaborators can edit it.`"
+        >
+          <v-icon small>mdi-lock-open-variant-outline</v-icon>
+          &nbsp; public
         </span>
-        <span v-else>
-          <v-icon small>mdi-shield-lock</v-icon>
-          &nbsp; link sharing off
+        <span v-else v-tooltip="`Only collaborators can access this stream.`">
+          <v-icon small>mdi-lock-outline</v-icon>
+          &nbsp; private
         </span>
       </p>
       <v-divider class="pb-2"></v-divider>
@@ -70,6 +101,7 @@
         <v-icon small class="mr-2 float-left">mdi-cog-outline</v-icon>
         Edit
       </v-btn>
+
       <v-dialog v-model="editStreamDialog" max-width="500">
         <stream-edit-dialog
           :stream-id="stream.id"
@@ -79,6 +111,18 @@
           @close="editClosed"
         />
       </v-dialog>
+    </v-card-text>
+
+    <v-card-text v-show="isHomeRoute">
+      <v-btn
+        v-tooltip="'Edit stream global variables!'"
+        block
+        small
+        elevation="0"
+        :to="`/streams/${stream.id}/globals`"
+      >
+        Globals
+      </v-btn>
     </v-card-text>
 
     <v-card-title v-show="isHomeRoute"><h5>Collaborators</h5></v-card-title>
@@ -101,19 +145,33 @@
         </template>
       </v-row>
       <v-divider class="pb-2 mt-2"></v-divider>
+
       <v-btn
         v-if="userRole === 'owner'"
         small
         plain
         color="primary"
         text
-        class="px-0"
+        class="px-0 d-block"
         @click="dialogShare = true"
       >
         <v-icon small class="mr-2">mdi-account-multiple</v-icon>
         Manage
       </v-btn>
-      <v-dialog v-model="dialogShare" max-width="500">
+      <v-btn
+        v-if="userRole === 'owner'"
+        small
+        plain
+        color="primary"
+        text
+        class="px-0 d-block"
+        @click="showStreamInviteDialog"
+      >
+        <v-icon small class="mr-2">mdi-email-send-outline</v-icon>
+        Send an invite
+      </v-btn>
+      <stream-invite-dialog ref="streamInviteDialog" :stream-id="stream.id" />
+      <v-dialog v-if="userId" v-model="dialogShare" max-width="500">
         <stream-share-dialog
           :users="stream.collaborators"
           :stream-id="stream.id"
@@ -129,12 +187,14 @@ import streamQuery from '../graphql/stream.gql'
 import StreamEditDialog from '../components/dialogs/StreamEditDialog'
 import StreamShareDialog from '../components/dialogs/StreamShareDialog'
 import UserAvatar from '../components/UserAvatar'
+import StreamInviteDialog from '../components/dialogs/StreamInviteDialog'
 
 export default {
   components: {
     StreamEditDialog,
     StreamShareDialog,
-    UserAvatar
+    UserAvatar,
+    StreamInviteDialog
   },
   props: {
     userRole: {
@@ -175,6 +235,9 @@ export default {
       let options = { year: 'numeric', month: 'short', day: 'numeric' }
 
       return date.toLocaleString(undefined, options)
+    },
+    showStreamInviteDialog() {
+      this.$refs.streamInviteDialog.show()
     }
   }
 }

@@ -15,6 +15,7 @@
               {{ stream.commit.message }}
               <v-spacer />
               <v-btn
+                v-if="userRole === 'contributor' || userRole === 'owner'"
                 v-tooltip="'Edit commit details'"
                 small
                 plain
@@ -56,8 +57,29 @@
             </v-list-item>
           </v-sheet>
           <div style="height: 50vh">
-            <renderer :object-url="commitObjectUrl" />
+            <renderer :object-url="commitObjectUrl" @selection="handleSelection" />
           </div>
+          <v-expand-transition>
+            <v-sheet v-show="selectionData.length !== 0" class="pa-4" color="transparent">
+              <v-card-title class="mr-8">
+                <v-badge inline :content="selectionData.length">
+                  <v-icon class="mr-2">mdi-cube</v-icon>
+                  Selection
+                </v-badge>
+              </v-card-title>
+              <div v-if="selectionData.length !== 0">
+                <object-simple-viewer
+                  v-for="(obj, ind) in selectionData"
+                  :key="obj.id + ind"
+                  :value="obj"
+                  :stream-id="stream.id"
+                  :key-name="`Selected Object ${ind + 1}`"
+                  force-show-open-in-new
+                  force-expand
+                />
+              </div>
+            </v-sheet>
+          </v-expand-transition>
           <v-sheet class="pa-4" color="transparent">
             <v-card-title class="mr-8">
               <v-icon class="mr-2">mdi-database</v-icon>
@@ -87,6 +109,7 @@
 import gql from 'graphql-tag'
 import UserAvatar from '../components/UserAvatar'
 import ObjectSpeckleViewer from '../components/ObjectSpeckleViewer'
+import ObjectSimpleViewer from '../components/ObjectSimpleViewer'
 import Renderer from '../components/Renderer'
 import streamCommitQuery from '../graphql/commit.gql'
 import CommitEditDialog from '../components/dialogs/CommitEditDialog'
@@ -99,12 +122,20 @@ export default {
     CommitEditDialog,
     UserAvatar,
     ObjectSpeckleViewer,
+    ObjectSimpleViewer,
     Renderer,
     SourceAppAvatar,
     ErrorBlock
   },
+  props: {
+    userRole: {
+      type: String,
+      default: null
+    }
+  },
   data: () => ({
-    loadedModel: false
+    loadedModel: false,
+    selectionData: []
   }),
   apollo: {
     stream: {
@@ -169,6 +200,10 @@ export default {
     }
   },
   methods: {
+    handleSelection(selectionData) {
+      this.selectionData.splice(0, this.selectionData.length)
+      this.selectionData.push(...selectionData)
+    },
     editCommit() {
       this.$refs.commitDialog.open(this.stream.commit, this.stream.id).then((dialog) => {
         if (!dialog.result) return

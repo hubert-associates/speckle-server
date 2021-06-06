@@ -2,6 +2,10 @@
 const Sentry = require( '@sentry/node' )
 const { ApolloError } = require( 'apollo-server-express' )
 const { apolloHelper } = require( './matomoHelper' )
+const prometheusClient = require( 'prom-client' )
+
+const metricCallCount = new prometheusClient.Counter( { name: 'speckle_server_apollo_calls', help: 'Number of calls', labelNames: [ 'actionName' ] } )
+
 
 module.exports = {
   requestDidStart( ctx ) {
@@ -17,7 +21,14 @@ module.exports = {
         } )
 
         try {
-          apolloHelper( `${ctx.operation.operation} ${ctx.operation.selectionSet.selections[0].name.value}` )
+          let actionName = `${ctx.operation.operation} ${ctx.operation.selectionSet.selections[0].name.value}`
+          metricCallCount.labels( actionName ).inc()
+          
+          // console.log( actionName )
+          // Filter out subscription ops
+          if ( !ctx.operation.operation.toLowerCase().includes( 'subscription' ) ) {
+            apolloHelper( actionName )
+          }
         } catch ( e ) {
           Sentry.captureException( e )
         }

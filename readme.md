@@ -6,27 +6,37 @@
 
 [![Speckle-Next](https://circleci.com/gh/specklesystems/speckle-server.svg?style=svg&circle-token=76eabd350ea243575cbb258b746ed3f471f7ac29)](https://github.com/Speckle-Next/SpeckleServer/) [![codecov](https://codecov.io/gh/specklesystems/speckle-server/branch/master/graph/badge.svg)](https://codecov.io/gh/specklesystems/speckle-server)
 
-## Disclaimer
-
-We're working to stabilize the 2.0 API, and until then there will be breaking changes.
-
 ## Introduction
 
 This monorepo is the home of the Speckle 2.0 web packages. If you're looking for the desktop connectors, you'll find them [here](https://github.com/specklesystems/speckle-sharp).
 
 Specifically, this monorepo contains:
 
-### ➡️ [Server](packages/server), the Speckle Server.
+### ➡️ [Server](packages/server), the Speckle Server
 
-The server is a nodejs app. Core external dependencies are a Redis and Postgresql db.
+The server is a nodejs app. Core external dependencies are a Redis and Postgresql db. Deploy one in a minute on Digital Ocean using the button below!
 
-### ➡️ [Frontend](packages/frontend), the Speckle Frontend.
+[![do-btn-blue-re](https://user-images.githubusercontent.com/7696515/120513666-69be0800-c3c4-11eb-9d50-7b9811b8e0f1.png)](https://marketplace.digitalocean.com/apps/speckle-server?refcode=947a2b5d7dc1)
+
+### ➡️ [Frontend](packages/frontend), the Speckle Frontend
 
 The frontend is a static Vue app.
 
-### ➡️ [Viewer](packages/viewer), the Speckle Viewer.
+### ➡️ [Viewer](packages/viewer), the Speckle Viewer
+
+[![npm version](https://badge.fury.io/js/%40speckle%2Fviewer.svg)](https://www.npmjs.com/package/@speckle/viewer)
 
 The viewer is a [threejs](https://threejs.org/) extension that allows you to display data from Speckle.
+
+### ➡️ [Object Loader](packages/objectloader), a JS helper module 
+
+[![npm version](https://badge.fury.io/js/%40speckle%2Fobjectloader.svg)](https://www.npmjs.com/package/@speckle/objectloader)
+
+A small utility class that helps you stream an object and all its sub-components from the Speckle Server API.
+
+### ➡️ [Preview Service](packages/preview-service), for headlessly generating images for 3d objects
+
+Generates object previews for Speckle Objects. This package is meant to be called on by the server.
 
 ## Documentation
 
@@ -34,37 +44,12 @@ Comprehensive developer and user documentation can be found in our:
 
 #### 📚 [Speckle Docs website](https://speckle.guide/dev/)
 
+## Usage
+To start using Speckle, it's not necessary to deploy it yourself. The easiest way is to register a free account on speckle.xyz, our general availability offering. Check [https://speckle.systems/getstarted/](https://speckle.systems/getstarted/) for more information. 
+
 ## Developing and Debugging
 
-To get started, first clone this repo. Check out the detailed instructions for each module in their respective folder (see links above).
-
-## Bootsrap local Speckle Server
-
-> prerequisites: [Docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
-
-To get a local Server stack up and running quickly:
-
-- Clone this repository and cd into the repository root:
-  ```console
-  git clone https://github.com/specklesystems/speckle-server.git
-  cd speckle-server
-  ```
-- Start dependencies (postgres and redis)  by running:
-  ```console
-  docker-compose -f docker-compose-deps.yml up -d
-  ```
-- You have 2 options for running the speckle server (frontend + backend):
-  - (useful for development) With local development tools (check the Readme.md file in the `frontend` and `server` packages)
-  - (useful for getting the server running without having local development tools) by starting them inside docker containers:
-    ```console
-    docker-compose -f docker-compose-speckle.yml up -d
-    ```
-
-This gets you an empty server running on [localhost:3000](http://localhost:3000)
-
-Note: the docker containers will automatically restart at startup. To shut them down, you can use `docker-compose -f [yml_file_name] down` command
-
-For more details and options, check out our [Server Setup Docs](https://speckle.guide/dev/server-setup.html)
+If you want to deploy the Server, we have a detailed [guide on how to do so](https://speckle.guide/dev/server-setup.html). To get started developing locally, you can read the [run in development mode](https://speckle.guide/dev/server-setup.html#run-in-development-mode) chapter of our deployment guide.
 
 ## Contributing
 
@@ -79,6 +64,10 @@ When pushing commits to this repo, please follow the following guidelines:
 ## Community
 
 The Speckle Community hangs out on [the forum](https://speckle.community), do join and introduce yourself & feel free to ask us questions!
+
+## Security
+
+For any security vulnerabilities or concerns, please contact us directly at security[at]speckle.systems. 
 
 ## License
 

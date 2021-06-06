@@ -5,25 +5,23 @@
         <v-skeleton-loader type="card-heading, card-avatar, article"></v-skeleton-loader>
       </v-card>
       <v-card v-else class="mb-4 transparent" rounded="lg" elevation="0">
-        <v-sheet
-          class="px-5 pt-5 align-center justify-center"
-          :class="latestCommit ? '' : 'rounded-b-lg'"
-        >
+        <v-sheet class="px-5 pt-5 align-center justify-center">
           <v-select
             v-if="branches"
             v-model="selectedBranch"
-            :items="branches.items"
+            :items="branches"
             item-value="name"
             solo
             flat
             return-object
             background-color="background"
             class="d-inline-block mt-2 mr-4 mb-0 pb-0"
+            style="max-width: 50%"
             @change="changeBranch"
           >
             <template #selection="{ item }">
               <v-icon class="mr-2">mdi-source-branch</v-icon>
-              {{ item.name }}
+              <span class="text-truncate">{{ item.name }}</span>
             </template>
             <template #item="{ item }">
               <div class="pa-2">
@@ -43,17 +41,21 @@
             :to="'/streams/' + $route.params.streamId + '/branches'"
           >
             <v-icon class="mr-2 float-left">mdi-source-branch</v-icon>
-            {{ branches.totalCount }} branch{{ branches.totalCount > 1 ? 'es' : '' }}
+            {{ branches.length }} branch{{ branches.length > 1 ? 'es' : '' }}
           </v-btn>
         </v-sheet>
 
         <div v-if="latestCommit" style="height: 50vh">
-          <renderer :object-url="latestCommitObjectUrl" :unload-trigger="clearRendererTrigger" />
+          <renderer
+            :object-url="latestCommitObjectUrl"
+            :unload-trigger="clearRendererTrigger"
+            show-selection-helper
+          />
         </div>
 
-        <v-sheet v-if="latestCommit">
+        <v-sheet :class="latestCommit ? '' : 'rounded-b-lg'">
           <!-- LAST COMMIT -->
-          <v-list two-line class="pa-0">
+          <v-list v-if="latestCommit" two-line class="pa-0">
             <v-list-item :to="'/streams/' + $route.params.streamId + '/commits/' + latestCommit.id">
               <v-list-item-icon>
                 <user-avatar
@@ -79,7 +81,7 @@
             </v-list-item>
           </v-list>
           <!-- LAST 2 COMMITS -->
-          <v-list dense color="transparent" class="mb-0 pa-0">
+          <v-list v-if="selectedBranch" dense color="transparent" class="mb-0 pa-0">
             <div v-for="(commit, i) in selectedBranch.commits.items" :key="commit.id">
               <v-list-item
                 v-if="i > 0"
@@ -109,6 +111,7 @@
               </v-list-item>
               <v-divider />
             </div>
+            <v-divider v-if="!latestCommit" />
             <v-list-item>
               <v-list-item-content>
                 <v-btn
@@ -124,20 +127,13 @@
                   "
                 >
                   <v-icon class="mr-2 float-left">mdi-source-commit</v-icon>
-                  SEE {{ selectedBranch.commits.totalCount > 1 ? 'ALL' : '' }}
-                  {{ selectedBranch.commits.totalCount }} commit{{
-                    selectedBranch.commits.totalCount === 1 ? '' : 's'
-                  }}
+                  {{ commitsPageText }}
                 </v-btn>
               </v-list-item-content>
             </v-list-item>
           </v-list>
         </v-sheet>
-
-        <no-data-placeholder
-          v-if="!latestCommit"
-          :message="`No data here! Here's how to get started:`"
-        />
+        <no-data-placeholder v-if="!latestCommit" :message="`This branch has no commits.`" />
       </v-card>
 
       <v-card
@@ -232,7 +228,7 @@ export default {
         }
       },
       update(data) {
-        return data.stream.branches
+        return data.stream.branches.items.filter((b) => !b.name.startsWith('globals'))
       }
     },
     description: {
@@ -250,12 +246,58 @@ export default {
         }
       },
       update: (data) => data.stream.description
+    },
+    $subscribe: {
+      branchCreated: {
+        query: gql`
+          subscription($streamId: String!) {
+            branchCreated(streamId: $streamId)
+          }
+        `,
+        variables() {
+          return {
+            streamId: this.$route.params.streamId
+          }
+        },
+        result() {
+          this.$apollo.queries.branches.refetch()
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      },
+      branchDeleted: {
+        query: gql`
+          subscription($streamId: String!) {
+            branchDeleted(streamId: $streamId)
+          }
+        `,
+        variables() {
+          return {
+            streamId: this.$route.params.streamId
+          }
+        },
+        result() {
+          this.$apollo.queries.branches.refetch()
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      }
     }
   },
   computed: {
+    commitsPageText() {
+      if (this.selectedBranch.commits.totalCount > 1)
+        return `SEE ALL ${this.selectedBranch.commits.totalCount} COMMITS`
+
+      if (this.selectedBranch.commits.totalCount === 1) return `SEE 1 COMMIT`
+
+      return `SEE BRANCH DETAILS`
+    },
     branchNames() {
       if (!this.branches) return []
-      return this.branches.items.map((b) => b.name)
+      return this.branches.map((b) => b.name)
     },
     compiledStreamDescription() {
       if (!this.description) return ''
@@ -269,6 +311,9 @@ export default {
     latestCommitObjectUrl() {
       if (!this.latestCommit) return null
       return `${window.location.origin}/streams/${this.$route.params.streamId}/objects/${this.latestCommit.referencedObject}`
+    },
+    loggedIn() {
+      return localStorage.getItem('uuid') !== null
     }
   },
   watch: {
@@ -299,8 +344,8 @@ export default {
     selectBranch() {
       if (!this.branches) return
       let branchName = this.$route.params.branchName ? this.$route.params.branchName : 'main'
-      let index = this.branches.items.findIndex((x) => x.name === branchName)
-      if (index > -1) this.selectedBranch = this.branches.items[index]
+      let index = this.branches.findIndex((x) => x.name === branchName)
+      if (index > -1) this.selectedBranch = this.branches[index]
       else this.error = 'Branch ' + branchName + ' does not exist'
     },
     changeBranch() {

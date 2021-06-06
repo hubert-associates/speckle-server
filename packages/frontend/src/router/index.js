@@ -67,16 +67,9 @@ const routes = [
         },
         component: () => import('../views/Streams.vue')
       },
-      // {
-      //   path: 'streams',
-      //   name: 'streams',
-      //   meta: {
-      //     title: 'Streams | Speckle'
-      //   },
-      //   component: () => import('../views/Streams.vue')
-      // },
       {
         path: 'streams/:streamId',
+        name: 'streams',
         meta: {
           title: 'Stream | Speckle'
         },
@@ -91,8 +84,24 @@ const routes = [
             component: () => import('../views/StreamMain.vue')
           },
           {
+            path: 'globals/',
+            name: 'globals',
+            meta: {
+              title: 'Globals | Speckle'
+            },
+            component: () => import('../views/Globals.vue')
+          },
+          {
+            path: 'globals/:commitId',
+            name: 'previous globals',
+            meta: {
+              title: 'Globals | Speckle'
+            },
+            component: () => import('../views/Globals.vue')
+          },
+          {
             path: 'branches/',
-            name: 'branchs',
+            name: 'branches',
             meta: {
               title: 'Branches | Speckle'
             },
@@ -167,6 +176,11 @@ const routes = [
     component: () => import('../views/GettingStartedView.vue')
   },
   {
+    path: '/embed',
+    name: 'Embeded Viewer',
+    component: () => import('../views/EmbedViewer.vue')
+  },
+  {
     path: '*',
     name: 'notfound',
     meta: {
@@ -188,6 +202,8 @@ router.beforeEach((to, from, next) => {
 
   if (
     !uuid &&
+    !to.matched.some(({ name }) => name === 'streams') && //allow public streams to be viewed
+    to.name !== 'Embeded Viewer' &&
     to.name !== 'Login' &&
     to.name !== 'Register' &&
     to.name !== 'Error' &&
@@ -212,7 +228,7 @@ router.beforeEach((to, from, next) => {
 })
 
 //TODO: include stream name in page title eg `My Cool Stream | Speckle`
-router.afterEach((to, from) => {
+router.afterEach((to) => {
   if (localStorage.getItem('shouldRedirectTo') === to.path)
     localStorage.removeItem('shouldRedirectTo')
 

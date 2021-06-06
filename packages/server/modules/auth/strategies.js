@@ -9,12 +9,9 @@ const debug = require( 'debug' )
 
 const sentry = require( `${appRoot}/logging/sentryHelper` )
 const { getApp, createAuthorizationCode } = require( './services/apps' )
-const { getServerInfo } = require( `${appRoot}/modules/core/services/generic` )
-const { useInvite } = require( `${appRoot}/modules/serverinvites/services` )
 
 module.exports = async ( app ) => {
 
-  let serverInfo = await getServerInfo( )
   let authStrategies = []
 
   passport.serializeUser( ( user, done ) => done( null, user ) )
@@ -51,19 +48,17 @@ module.exports = async ( app ) => {
    */
   let finalizeAuth = async ( req, res, next ) => {
     try {
-      let app = await getApp( { id: 'spklwebapp' } )
+
       let ac = await createAuthorizationCode( { appId: 'spklwebapp', userId: req.user.id, challenge: req.session.challenge } )
-
-      if ( req.session.inviteId ) {
-        await useInvite( { id: req.session.inviteId, email: req.user.email } )
-      }
-
       if ( req.session ) req.session.destroy( )
-      return res.redirect( `${app.redirectUrl}?access_code=${ac}` )
+      return res.redirect( `${process.env.CANONICAL_URL}?access_code=${ac}` )
+
     } catch ( err ) {
+
       sentry( { err } )
       if ( req.session ) req.session.destroy( )
       return res.status( 401 ).send( { err: err.message } )
+
     }
   }
 
@@ -82,6 +77,12 @@ module.exports = async ( app ) => {
   if ( process.env.STRATEGY_GITHUB === 'true' ) {
     let githubStrategy = await require( './strategies/github' )( app, session, sessionStorage, finalizeAuth )
     authStrategies.push( githubStrategy )
+    strategyCount++
+  }
+
+  if ( process.env.STRATEGY_AZURE_AD === 'true' ) {
+    let azureAdStrategy = await require( './strategies/azure-ad' )( app, session, sessionStorage, finalizeAuth )
+    authStrategies.push( azureAdStrategy )
     strategyCount++
   }
 

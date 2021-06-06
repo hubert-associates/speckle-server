@@ -38,6 +38,10 @@ exports.init = async ( ) => {
   Logging( app )
   MatStartup()
 
+  // Initialise prometheus metrics
+  prometheusClient.register.clear()
+  prometheusClient.collectDefaultMetrics()
+
   // Moves things along automatically on restart.
   // Should perhaps be done manually?
   await knex.migrate.latest( )
@@ -50,8 +54,8 @@ exports.init = async ( ) => {
     app.use( compression( ) )
   }
 
-  app.use( bodyParser.json( { limit: '10mb' } ) )
-  app.use( bodyParser.urlencoded( { extended: false } ) )
+  app.use( bodyParser.json( { limit: '100mb' } ) )
+  app.use( bodyParser.urlencoded( { limit: '100mb', extended: false } ) )
 
   const { init, graph } = require( './modules' )
 
@@ -61,11 +65,15 @@ exports.init = async ( ) => {
 
 
   // Initialise graphql server
+  const metricConnectCounter = new prometheusClient.Counter( { name: 'speckle_server_apollo_connect', help: 'Number of connects' } )
+  const metricConnectedClients = new prometheusClient.Gauge( { name: 'speckle_server_apollo_clients', help: 'Number of currently connected clients' } )
   graphqlServer = new ApolloServer( {
     ...graph( ),
     context: contextApiTokenHelper,
     subscriptions: {
       onConnect: ( connectionParams, webSocket, context ) => {
+        metricConnectCounter.inc()
+        metricConnectedClients.inc()
         try {
           if ( connectionParams.Authorization || connectionParams.authorization || connectionParams.headers.Authorization ) {
             let header = connectionParams.Authorization || connectionParams.authorization || connectionParams.headers.Authorization
@@ -77,6 +85,7 @@ exports.init = async ( ) => {
         }
       },
       onDisconnect: ( webSocket, context ) => {
+        metricConnectedClients.dec()
         // debug( `speckle:debug` )( 'ws on disconnect connect event' )
       },
     },
@@ -91,8 +100,6 @@ exports.init = async ( ) => {
   graphqlServer.applyMiddleware( { app: app } )
 
   // Expose prometheus metrics
-  prometheusClient.register.clear()
-  prometheusClient.collectDefaultMetrics()
   app.get( '/metrics', async ( req, res ) => {
     try {
       res.set( 'Content-Type', prometheusClient.register.contentType )
@@ -115,6 +122,7 @@ exports.init = async ( ) => {
  * @return {[type]}     [description]
  */
 exports.startHttp = async ( app ) => {
+  let bindAddress = process.env.BIND_ADDRESS || '127.0.0.1'
   let port = process.env.PORT || 3000
   app.set( 'port', port )
 
@@ -133,13 +141,9 @@ exports.startHttp = async ( app ) => {
 
   }
 
-  // Production mode -> serve things statically.
+  // Production mode
   else {
-    app.use( '/', express.static( path.resolve( `${appRoot}/../frontend/dist` ) ) )
-
-    app.all( '*', async ( req, res ) => {
-      res.sendFile( path.resolve( `${appRoot}/../frontend/dist/app.html` ) )
-    } )
+    bindAddress = process.env.BIND_ADDRESS || '0.0.0.0'
   }
 
   // rht add ssl https
@@ -161,9 +165,9 @@ exports.startHttp = async ( app ) => {
   app.use( Sentry.Handlers.errorHandler( ) )
 
   server.on( 'listening', ( ) => {
-    debug( 'speckle:startup' )( `🚀 My name is Speckle Server, and I'm running at ${server.address().port}` )
+    debug( 'speckle:startup' )( `🚀 My name is Speckle Server, and I'm running at ${server.address().address}:${server.address().port}` )
   } )
 
-  server.listen( port )
+  server.listen( port, bindAddress )
   return { server }
 }

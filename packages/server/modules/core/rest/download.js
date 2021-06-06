@@ -6,38 +6,19 @@ const appRoot = require( 'app-root-path' )
 const cors = require( 'cors' )
 
 const { matomoMiddleware } = require( `${appRoot}/logging/matomoHelper` )
-const { contextMiddleware, validateScopes, authorizeResolver } = require( `${appRoot}/modules/shared` )
+const { contextMiddleware } = require( `${appRoot}/modules/shared` )
+const { validatePermissionsReadStream } = require( './authUtils' )
+
 const { getObject, getObjectChildrenStream } = require( '../services/objects' )
-const { getStream } = require( '../services/streams' )
 
 module.exports = ( app ) => {
 
   app.options( '/objects/:streamId/:objectId', cors() )
 
   app.get( '/objects/:streamId/:objectId', cors(), contextMiddleware, matomoMiddleware, async ( req, res ) => {
-
-    const stream = await getStream( { streamId: req.params.streamId, userId: req.context.userId } )
-
-    if ( !stream ) {
-      return res.status( 404 ).end()
-    }
-
-    if ( !stream.isPublic && req.context.auth === false ) {
-      return res.status( 401 ).end( )
-    }
-
-    if ( !stream.isPublic ) {
-      try {
-        await validateScopes( req.context.scopes, 'streams:read' )
-      } catch ( err ) {
-        return res.status( 401 ).end( )
-      }
-
-      try {
-        await authorizeResolver( req.context.userId, req.params.streamId, 'stream:reviewer' )
-      } catch ( err ) {
-        return res.status( 401 ).end( )
-      }
+    let hasStreamAccess = await validatePermissionsReadStream( req.params.streamId, req )
+    if ( !hasStreamAccess.result ) {
+      return res.status( hasStreamAccess.status ).end()
     }
 
     // Populate first object (the "commit")
@@ -66,15 +47,14 @@ module.exports = ( app ) => {
     if ( !simpleText ) gzip.write( '[' )
 
     // helper func to flush the gzip buffer
-    const writeBuffer = ( addTrailingComma ) => {
-      // console.log( `writing buff ${currentChunkSize}` )
+    const writeBuffer = ( addStartingComma ) => {
       if ( simpleText ) {
         gzip.write( chunk )
       } else {
-        gzip.write( chunk.join( ',' ) )
-        if ( addTrailingComma ) {
+        if ( addStartingComma ) {
           gzip.write( ',' )
         }
+        gzip.write( chunk.join( ',' ) )
       }
       gzip.flush( )
       chunk = simpleText ? '' : [ ]
@@ -86,7 +66,7 @@ module.exports = ( app ) => {
     } else {
       chunk.push( objString )
     }
-    writeBuffer( true )
+    writeBuffer( false )
 
     let k = 0
     let requestDropped = false
@@ -119,9 +99,9 @@ module.exports = ( app ) => {
 
     dbStream.on( 'end', ( ) => {
       if ( currentChunkSize !== 0 ) {
-        writeBuffer( false )
-        if ( !simpleText ) gzip.write( ']' )
+        writeBuffer( true )
       }
+      if ( !simpleText ) gzip.write( ']' )
       gzip.end( )
     } )
 
@@ -129,12 +109,19 @@ module.exports = ( app ) => {
     gzip.pipe( res )
   } )
 
-  // TODO: is this needed/used?
-  app.get( '/objects/:streamId/:objectId/single', async ( req, res ) => {
-    // TODO: authN & authZ checks
+  app.options( '/objects/:streamId/:objectId/single', cors() )
+  app.get( '/objects/:streamId/:objectId/single', cors(), contextMiddleware, matomoMiddleware, async ( req, res ) => {
+    let hasStreamAccess = await validatePermissionsReadStream( req.params.streamId, req )
+    if ( !hasStreamAccess.result ) {
+      return res.status( hasStreamAccess.status ).end()
+    }
 
-    let obj = await getObject( req.params.streamId, req.params.objectId )
+    let obj = await getObject( { streamId: req.params.streamId, objectId: req.params.objectId } )
 
-    res.send( obj )
+    if ( !obj ) {
+      return res.status( 404 ).send( `Failed to find object ${req.params.objectId}.` )
+    }
+
+    res.send( obj.data )
   } )
 }

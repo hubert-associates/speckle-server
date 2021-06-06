@@ -37,7 +37,7 @@ module.exports = {
     await Invites().insert( invite )
 
     let serverInfo = await getServerInfo()
-    let inviteLink = new URL( `/authn/register?invite=${invite.id}`, process.env.CANONICAL_URL )
+    let inviteLink = new URL( `/authn/register?inviteId=${invite.id}`, process.env.CANONICAL_URL )
 
     let emailText, emailHtml, subject
 
@@ -100,7 +100,7 @@ This email was sent from ${serverInfo.name} at ${process.env.CANONICAL_URL}, dep
 
   async validateInvite( { email, id } ) {
     const invite = await module.exports.getInviteById( { id } )
-    return invite.email === email
+    return invite && invite.email === email && !invite.used
   },
 
   async useInvite( { id, email } ) {

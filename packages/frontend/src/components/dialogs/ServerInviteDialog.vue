@@ -2,22 +2,14 @@
   <div>
     <v-dialog v-model="showDialog" max-width="400">
       <v-card>
-        <v-card-title v-show="!success">Send a server invite</v-card-title>
+        <v-card-title>Send a server invite</v-card-title>
         <v-alert v-model="showError" dismissible type="error" :class="`${success ? 'mb-0' : ''}`">
           {{ error }}
         </v-alert>
-        <v-alert v-model="success" dismissible type="success">
+        <v-alert v-model="success" timeout="3000" dismissible type="success">
           Great! An invite link has been sent.
-          <br />
-          Send another one?
         </v-alert>
-        <v-form
-          v-show="!success"
-          ref="form"
-          v-model="valid"
-          class="px-2"
-          @submit.prevent="sendInvite"
-        >
+        <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="sendInvite">
           <v-card-text class="pb-0 mb-0">
             We will send an invite link for this server to the email below. You can also add a
             personal message if you want to.
@@ -43,12 +35,6 @@ import gql from 'graphql-tag'
 
 export default {
   name: 'ServerInviteDialog',
-  props: {
-    show: {
-      type: Number,
-      default: 0
-    }
-  },
   data() {
     return {
       showDialog: false,
@@ -67,25 +53,27 @@ export default {
     }
   },
   watch: {
-    show() {
-      this.showDialog = true
-    },
     showDialog() {
       this.clear()
+      this.email = null
+      this.message = 'Hey, join this Speckle Server!'
     }
   },
   methods: {
+    show() {
+      this.showDialog = true
+    },
     clear() {
       this.error = null
       this.showError = false
-      this.email = null
       this.success = false
-      this.message = 'Hey, join this Speckle Server!'
+      if (this.$refs.form) this.$refs.form.resetValidation()
     },
     async sendInvite() {
       if (!this.$refs.form.validate()) return
 
       this.$matomo && this.$matomo.trackPageView('invite/create')
+      this.$matomo && this.$matomo.trackEvent('invite', 'server')
       try {
         await this.$apollo.mutate({
           mutation: gql`

@@ -5,12 +5,22 @@
         <v-icon class="mr-2" small>mdi-code-braces</v-icon>
         {{ keyName }}
         <span class="caption ml-2">
-          {{ value.speckle_type ? value.speckle_type : 'Object' }}
+          {{ value.speckle_type ? parsedType : 'Object' }}
         </span>
         <v-icon small class="ml-2">
           {{ localExpand ? 'mdi-minus' : 'mdi-plus' }}
         </v-icon>
       </v-chip>
+      <v-btn
+        v-show="forceShowOpenInNew || value.referencedId"
+        v-tooltip="`open in a new tab`"
+        icon
+        small
+        target="_blank"
+        :to="`/streams/${streamId}/objects/${value.id || value.referencedId}`"
+      >
+        <v-icon small>mdi-open-in-new</v-icon>
+      </v-btn>
     </v-card-title>
     <v-card-text v-if="localExpand" class="pr-0 pl-3">
       <component
@@ -44,11 +54,19 @@ export default {
     keyName: {
       type: String,
       default: null
+    },
+    forceShowOpenInNew: {
+      type: Boolean,
+      default: false
+    },
+    forceExpand: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
-      localExpand: false
+      localExpand: this.forceExpand
     }
   },
   computed: {
@@ -98,6 +116,11 @@ export default {
         return 0
       })
       return arr
+    },
+    parsedType() {
+      if (!this.value.speckle_type) return 'Object'
+      let sections = this.value.speckle_type.split(':').map((s) => s.split('.').reverse()[0])
+      return sections.join('/')
     }
   },
   methods: {

@@ -24,8 +24,10 @@ query Streams($cursor: String) {
           createdAt
           message
           authorId
+          branchName
           authorName
           authorAvatar
+          referencedObject
         }
       }
       branches {

@@ -7,7 +7,7 @@
       <v-card v-else rounded="lg" class="pa-4 mb-4" elevation="0">
         <v-dialog v-model="dialogBranch" max-width="500">
           <new-branch-dialog
-            :branch-names="branches.items.map((b) => b.name)"
+            :branch-names="branches.map((b) => b.name)"
             :stream-id="$route.params.streamId"
             @close="closeBranchDialog"
           />
@@ -40,15 +40,13 @@
       </v-card>
 
       <v-card v-if="!$apollo.queries.stream.loading" class="mt-5 pa-4" elevation="0" rounded="lg">
-        <v-subheader class="text-uppercase">Branches ({{ branches.items.length }})</v-subheader>
+        <v-subheader class="text-uppercase">Branches ({{ branches.length }})</v-subheader>
         <v-card-text>
           <v-list two-line color="transparent">
-            <template v-for="item in branches.items">
+            <template v-for="item in branches">
               <v-list-item
                 :key="item.id"
-                :to="`/streams/${$route.params.streamId}/branches/${encodeURIComponent(
-                  item.name
-                )}`"
+                :to="`/streams/${$route.params.streamId}/branches/${encodeURIComponent(item.name)}`"
               >
                 <v-list-item-content>
                   <v-list-item-title>
@@ -75,6 +73,7 @@
 <script>
 import NewBranchDialog from '../components/dialogs/BranchNewDialog'
 import streamBranchesQuery from '../graphql/streamBranches.gql'
+import gql from 'graphql-tag'
 
 export default {
   name: 'StreamMain',
@@ -103,11 +102,49 @@ export default {
       update(data) {
         return data.stream
       }
+    },
+    $subscribe: {
+      branchCreated: {
+        query: gql`
+          subscription($streamId: String!) {
+            branchCreated(streamId: $streamId)
+          }
+        `,
+        variables() {
+          return {
+            streamId: this.$route.params.streamId
+          }
+        },
+        result() {
+          this.$apollo.queries.stream.refetch()
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      },
+      branchDeleted: {
+        query: gql`
+          subscription($streamId: String!) {
+            branchDeleted(streamId: $streamId)
+          }
+        `,
+        variables() {
+          return {
+            streamId: this.$route.params.streamId
+          }
+        },
+        result() {
+          this.$apollo.queries.stream.refetch()
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      }
     }
   },
   computed: {
     branches() {
-      return this.stream.branches
+      return this.stream.branches.items.filter((b) => !b.name.startsWith('globals'))
     },
     breadcrumbs() {
       return [
@@ -124,6 +161,9 @@ export default {
           to: '/streams/' + this.stream.id + '/branches/'
         }
       ]
+    },
+    loggedIn() {
+      return localStorage.getItem('uuid') !== null
     }
   },
   mounted() {
