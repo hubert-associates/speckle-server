@@ -31,10 +31,13 @@ let migrationDirs = walk( './modules' )
 let env = process.env
 let connectionUri
 if ( env.POSTGRES_USER && env.POSTGRES_PASSWORD ) {
-  connectionUri = `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_URL}/${env.POSTGRES_DB}`
+  connectionUri = `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_URL}/${env.POSTGRES_DB}`.replace(/"/g, '');
 } else {
-  connectionUri = env.POSTGRES_URL
+  connectionUri = (env.POSTGRES_URL).replace(/"/g, '');
 }
+const debug = require( 'debug' )
+
+debug( 'speckle:rht1:db-startup' )( `Loaded knex conf for ${env} with rht connextionUri of ${connectionUri}`)
 
 module.exports = {
   test: {

@@ -12,6 +12,6 @@ conf.log = {
 
 const debug = require( 'debug' )
 
-debug( 'speckle:db-startup' )( `Loaded knex conf for ${env}` )
+debug( 'speckle:db-startup' )( `Loaded knex conf for ${env} `)
 
 module.exports = require( 'knex' )( conf )

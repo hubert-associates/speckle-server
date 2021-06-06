@@ -2,6 +2,8 @@
 'use strict'
 
 const http = require( 'http' )
+const https = require( 'https')
+var fs = require('fs')
 const url = require( 'url' )
 const express = require( 'express' )
 const compression = require( 'compression' )
@@ -55,6 +57,8 @@ exports.init = async ( ) => {
 
   // Initialise default modules, including rest api handlers
   await init( app )
+
+
 
   // Initialise graphql server
   graphqlServer = new ApolloServer( {
@@ -125,7 +129,7 @@ exports.startHttp = async ( app ) => {
     app.use( '/', frontendProxy )
 
     debug( 'speckle:startup' )( '✨ Proxying frontend (dev mode):' )
-    debug( 'speckle:startup' )( `👉 main application: http://localhost:${port}/` )
+    debug( 'speckle:startup' )( `👉 rht:debug: main application: http://localhost:${port}/` )
 
   }
 
@@ -138,7 +142,17 @@ exports.startHttp = async ( app ) => {
     } )
   }
 
-  let server = http.createServer( app )
+  // rht add ssl https
+  //let cdir = __dirname + '/hxaCert';
+  let sslOptions = {
+    key: fs.readFileSync('key.pem'),
+    cert: fs.readFileSync('cert.pem'),
+    passphrase: '/uuuuuu7'
+  };
+
+  //let serverHttps = https.createServer(sslOptions, app)
+  
+  let server = http.createServer(app)
 
   // Final apollo server setup
   graphqlServer.installSubscriptionHandlers( server )
