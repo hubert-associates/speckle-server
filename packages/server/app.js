@@ -2,8 +2,6 @@
 'use strict'
 
 const http = require( 'http' )
-const https = require( 'https')
-var fs = require('fs')
 const url = require( 'url' )
 const express = require( 'express' )
 const compression = require( 'compression' )
@@ -61,8 +59,6 @@ exports.init = async ( ) => {
 
   // Initialise default modules, including rest api handlers
   await init( app )
-
-
 
   // Initialise graphql server
   const metricConnectCounter = new prometheusClient.Counter( { name: 'speckle_server_apollo_connect', help: 'Number of connects' } )
@@ -122,6 +118,8 @@ exports.init = async ( ) => {
  * @return {[type]}     [description]
  */
 exports.startHttp = async ( app, customPortOverride ) => {
+  debug( 'speckle:startup' )( `rht1 proc.env.BIND_ADDRESS= ${process.env.BIND_ADDRESS}` )
+
   let bindAddress = process.env.BIND_ADDRESS || '127.0.0.1'
   let port = process.env.PORT || 3000
 
@@ -140,26 +138,17 @@ exports.startHttp = async ( app, customPortOverride ) => {
     app.use( '/', frontendProxy )
 
     debug( 'speckle:startup' )( '✨ Proxying frontend (dev mode):' )
-    debug( 'speckle:startup' )( `👉 rht:debug: main application: http://localhost:${port}/` )
+    debug( 'speckle:startup' )( `👉 main application: http://localhost:${port}/` )
 
   }
 
   // Production mode
-  else {
+  else {  
+    debug( 'speckle:startup' )( `rht1.1 proc.env.BIND_ADDRESS= ${process.env.BIND_ADDRESS}` )
     bindAddress = process.env.BIND_ADDRESS || '0.0.0.0'
   }
 
-  // rht add ssl https
-  //let cdir = __dirname + '/hxaCert';
-  let sslOptions = {
-    key: fs.readFileSync('key.pem'),
-    cert: fs.readFileSync('cert.pem'),
-    passphrase: '/uuuuuu7'
-  };
-
-  //let serverHttps = https.createServer(sslOptions, app)
-  
-  let server = http.createServer(app)
+  let server = http.createServer( app )
 
   // Final apollo server setup
   graphqlServer.installSubscriptionHandlers( server )
@@ -170,7 +159,7 @@ exports.startHttp = async ( app, customPortOverride ) => {
   server.on( 'listening', ( ) => {
     debug( 'speckle:startup' )( `🚀 My name is Speckle Server, and I'm running at ${server.address().address}:${server.address().port}` )
   } )
-
+  debug( 'speckle:startup' )( `rht1.2 bindAddress= ${bindAddress}` )
   server.listen( port, bindAddress )
   return { server }
 }

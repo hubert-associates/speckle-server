@@ -27,9 +27,11 @@ exports.init = async ( app, options ) => {
   if ( process.env.EMAIL === 'true' ) {
     try {
       transporter = nodemailer.createTransport( {
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT || 587,
-        secure: process.env.EMAIL_SECURE === 'true',
+        //rht1: host: process.env.EMAIL_HOST,
+        //rht1: port: process.env.EMAIL_PORT || 587,
+        //rht1: secure: process.env.EMAIL_SECURE === 'true',
+        // https://nodemailer.com/smtp/well-known/ https://postmarkapp.com/send-email/node
+        service: 'Postmark',
         auth: {
           user: process.env.EMAIL_USERNAME,
           pass: process.env.EMAIL_PASSWORD
