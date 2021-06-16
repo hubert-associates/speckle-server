@@ -16,6 +16,4 @@ test-queries
 packages/viewer/example/*.js
 packages/viewer/example/*.js.map
 docker-compose.yaml
-docker-compose.yaml
-docker-compose.yaml
-docker-compose.yaml
+packages/frontend/schema.graphql
