@@ -118,7 +118,7 @@ exports.init = async ( ) => {
  * @return {[type]}     [description]
  */
 exports.startHttp = async ( app, customPortOverride ) => {
-  debug( 'speckle:startup' )( `rht1 proc.env.BIND_ADDRESS= ${process.env.BIND_ADDRESS}` )
+  debug( 'speckle:startup' )( `rht1.1 proc.env.BIND_ADDRESS= ${process.env.BIND_ADDRESS}` )
 
   let bindAddress = process.env.BIND_ADDRESS || '127.0.0.1'
   let port = process.env.PORT || 3000
@@ -144,7 +144,6 @@ exports.startHttp = async ( app, customPortOverride ) => {
 
   // Production mode
   else {  
-    debug( 'speckle:startup' )( `rht1.1 proc.env.BIND_ADDRESS= ${process.env.BIND_ADDRESS}` )
     bindAddress = process.env.BIND_ADDRESS || '0.0.0.0'
   }
 

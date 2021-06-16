@@ -24,14 +24,15 @@ exports.init = async ( app, options ) => {
     return
   }
 
+
+  // rht: https://nodemailer.com/smtp/well-known/ https://postmarkapp.com/send-email/node
+  // rht: https://cheatcode.co/tutorials/how-to-send-email-with-nodemailer
   if ( process.env.EMAIL === 'true' ) {
     try {
-      transporter = nodemailer.createTransport( {
-        //rht1: host: process.env.EMAIL_HOST,
-        //rht1: port: process.env.EMAIL_PORT || 587,
-        //rht1: secure: process.env.EMAIL_SECURE === 'true',
-        // https://nodemailer.com/smtp/well-known/ https://postmarkapp.com/send-email/node
-        service: 'Postmark',
+      transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT || 587,
+        secure: process.env.EMAIL_SECURE === 'true',
         auth: {
           user: process.env.EMAIL_USERNAME,
           pass: process.env.EMAIL_PASSWORD
@@ -43,7 +44,7 @@ exports.init = async ( app, options ) => {
   } else {
     debug( 'speckle:modules' )( '📧 Failed to initialise email provider. Server functionality will be limited.' )
   }
-
+  debug('speckle:modules')(`📧 rht1: ${process.env.EMAIL_FROM}`)
 }
 
 exports.finalize = async () => {
