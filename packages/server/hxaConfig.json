@@ -1,0 +1,26 @@
+{
+    "credentials": {
+        "tenantName": "hxaaadb2c",
+        "tenantId": "836873f3-2427-46cf-9651-f4a7fc148da5",
+        "clientID": "b69df4e6-8ff4-41fc-9e1b-4a4bbf4011a3",
+        "clientSecret": "fPP7mG_gsW2Cvj-hRGc2JMa9-~07cu.pLk"
+    },
+    "policies": {
+        "policyName": "B2C_1_SUSI"
+    },
+    "resource": {
+        "scope": ["demo.read"]
+    },
+    "metadata": {
+        "authority": "login.microsoftonline.com",
+        "discovery": ".well-known/openid-configuration",
+        "version": "v2.0"
+    },
+    "settings": {
+        "isB2C": false,
+        "validateIssuer": false,
+        "passReqToCallback": false,
+        "loggingLevel": "info",
+        "redirectUrl": "http://localhost"
+    }
+}

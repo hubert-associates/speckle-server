@@ -10,27 +10,41 @@ const { findOrCreateUser, getUserByEmail } = require( `${appRoot}/modules/core/s
 const { getServerInfo } = require( `${appRoot}/modules/core/services/generic` )
 const { validateInvite, useInvite } = require( `${appRoot}/modules/serverinvites/services` )
 
+const config = require( `${appRoot}/hxaConfig.json` )
+// rht1:option: require( 'dotenv' ).config( { path: `${appRoot}/hxaConfig.json` } )
+
 module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
 
+  // 
+  // rht: https://www.npmjs.com/package/passport-azure-ad#41-oidcstrategy
+  //      https://github.com/AzureAD/passport-azure-ad
+  //      https://docs.microsoft.com/en-us/samples/azure-samples/active-directory-b2c-javascript-nodejs-webapi/nodejs-web-api-azure-ad/ 
+  //      https://stackoverflow.com/questions/45197322/microsoft-ad-b2c-issue-policy-is-missing
+  //      SEE: https://github.com/AzureADQuickStarts/B2C-WebApp-OpenIDConnect-NodeJS and https://github.com/AzureADQuickStarts/B2C-WebApp-OpenIDConnect-NodeJS/blob/master/config.js
+  //      https://github.com/AzureAD/passport-azure-ad/issues/418
+  //
   let strategy = new OIDCStrategy( {
-    identityMetadata: process.env.AZURE_AD_IDENTITY_METADATA,
-    clientID: process.env.AZURE_AD_CLIENT_ID,
+    identityMetadata: `https://${config.credentials.tenantName}.b2clogin.com/${config.credentials.tenantName}.onmicrosoft.com/${config.policies.policyName}/${config.metadata.version}/${config.metadata.discovery}/?p=${config.policies.policyName}`,
+    clientID: config.credentials.clientID,
     responseType: 'code id_token',
     responseMode: 'form_post',
-    issuer: process.env.AZURE_AD_ISSUER,
-    redirectUrl: new URL( '/auth/azure/callback', process.env.CANONICAL_URL ).toString(),
+    isB2C: config.settings.isB2C,
+    issuer: `https://${config.credentials.tenantName}.b2clogin.com/${config.credentials.tenantId}/${config.metadata.version}/`,
+    redirectUrl: new URL( '/auth/azure/callback', config.settings.redirectUrl).toString(),
     allowHttpForRedirectUrl: true,
-    clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+    clientSecret: config.credentials.clientSecret,
     scope: [ 'profile', 'email', 'openid' ],
     loggingLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
     passReqToCallback: true
   }, async ( req, iss, sub, profile, accessToken, refreshToken, done ) => {
+    debug( 'speckle:startup' )( "rht-1.3: tmptst :") 
     done( null, profile )
   } )
 
   passport.use( strategy )
 
-  app.get( '/auth/azure', session, sessionStorage, passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } ) )
+  app.get( '/auth/azure', session, sessionStorage, passport.authenticate( 'azuread-openidconnect', { 
+    failureRedirect: '/error?message=Failed to authenticate.' } ) )
   app.post( '/auth/azure/callback',
     session,
     passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } ),
@@ -39,7 +53,7 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
 
       try {
         let user = {
-          email: req.user._json.email,
+          email: req.user._json.emails[0],
           name:  req.user._json.name || req.user.displayName
         }
 

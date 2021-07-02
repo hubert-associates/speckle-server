@@ -1,0 +1,49 @@
+version: '3.4'
+
+services:
+
+  speckle-frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    restart: always
+    ports:
+      - "0.0.0.0:80:80"
+
+  speckle-server:
+    build:
+      context: . # https://stackoverflow.com/questions/40248908/context-or-workdir-for-docker-compose
+      dockerfile: packages/server/Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: development
+      # TODO: Change this to the URL of the speckle server, as accessed from the network
+      CANONICAL_URL: http://localhost
+
+      # TODO: Change this to a unique secret for this server
+      SESSION_SECRET: "/uuuuuu7"
+
+      STRATEGY_LOCAL: "true"
+      DEBUG: "speckle:*"
+
+      POSTGRES_URL: "postgres"
+      POSTGRES_USER: "speckle"
+      POSTGRES_PASSWORD: "speckle"
+      POSTGRES_DB: "speckle"
+
+      REDIS_URL: "redis://redis"
+    ports:
+        - "0.0.0.0:3000:3000"
+        - "0.0.0.0:9229:9229"
+    env_file:
+        - .env
+    command: ["node", "--inspect=0.0.0.0:9229", "./bin/www"]
+
+  preview-service:
+    build:
+      context: .
+      dockerfile: packages/preview-service/Dockerfile
+    restart: always
+    environment:
+      DEBUG: "preview-service:*"
+      PG_CONNECTION_STRING: "postgres://speckle:speckle@postgres/speckle"

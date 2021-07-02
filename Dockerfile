@@ -19,7 +19,7 @@ RUN npm ci
 
 WORKDIR /opt
 COPY packages/server/package*.json server/
-ENV NODE_ENV production
+ENV NODE_ENV development
 RUN npm --prefix server ci server
 
 # Copy remaining files across for frontend. Changes to these files 
@@ -39,7 +39,7 @@ RUN chmod +x /wait
 # Use a non-root user for increased security.
 USER node
 
-ENV NODE_ENV production
+ENV NODE_ENV development
 
 # Copy dependencies and static files from build layer
 COPY --from=build --chown=node /opt/frontend/dist /home/node/frontend/dist

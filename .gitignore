@@ -17,3 +17,4 @@ packages/viewer/example/*.js
 packages/viewer/example/*.js.map
 docker-compose.yaml
 packages/frontend/schema.graphql
+tmp.txt

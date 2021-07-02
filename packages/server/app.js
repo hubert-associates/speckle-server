@@ -137,8 +137,8 @@ exports.startHttp = async ( app, customPortOverride ) => {
     const frontendProxy = createProxyMiddleware( { target: `http://${frontendHost}:${frontendPort}`, changeOrigin: true, ws: false, logLevel: 'silent' } )
     app.use( '/', frontendProxy )
 
-    debug( 'speckle:startup' )( '✨ Proxying frontend (dev mode):' )
-    debug( 'speckle:startup' )( `👉 main application: http://localhost:${port}/` )
+    debug( 'speckle:startup' )( `✨ Proxying frontend ( were in dev mode) to http://${frontendHost}:${frontendPort}` )
+    debug( 'speckle:startup' )( `     👉 main application: http://localhost:${port}/` )
 
   }
 
@@ -158,7 +158,7 @@ exports.startHttp = async ( app, customPortOverride ) => {
   server.on( 'listening', ( ) => {
     debug( 'speckle:startup' )( `🚀 My name is Speckle Server, and I'm running at ${server.address().address}:${server.address().port}` )
   } )
-  debug( 'speckle:startup' )( `rht1.2 bindAddress= ${bindAddress}` )
+  debug( 'speckle:startup' )( `rht1.2 port= ${port} bindAddress= ${bindAddress}` )
   server.listen( port, bindAddress )
   return { server }
 }
