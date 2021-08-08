@@ -3,14 +3,10 @@
     <v-card
       :to="'/streams/' + stream.id"
       color=""
-      :elevation="hover ? 5 : 1"
+      :elevation="hover ? 5 : 0"
       style="transition: all 0.2s ease-in-out"
     >
-      <img
-        ref="cover"
-        :class="`${hover ? '' : 'grasycale-img'} preview-img`"
-        :src="currentPreviewImg"
-      />
+      <preview-image :url="`/preview/${stream.d}`" :color="hover"></preview-image>
       <v-card-title class="">{{ stream.name }}</v-card-title>
       <v-card-text>
         <span class="caption mb-2 font-italic">
@@ -45,7 +41,7 @@
           text
           class="px-0"
           small
-          :to="'/streams/' + stream.id + '/branches/main/commits'"
+          :to="'/streams/' + stream.id + '/branches/main'"
         >
           <v-icon small class="mr-2 float-left">mdi-source-commit</v-icon>
           {{ stream.commits.totalCount }}
@@ -72,9 +68,10 @@
 </template>
 <script>
 import UserAvatar from '../components/UserAvatar'
+import PreviewImage from '@/components/PreviewImage'
 
 export default {
-  components: { UserAvatar },
+  components: { UserAvatar, PreviewImage },
   props: {
     stream: {
       type: Object,
@@ -82,56 +79,6 @@ export default {
         return {}
       }
     }
-  },
-  data() {
-    return {
-      previewImgUrls: [],
-      currentPreviewImg: '/loadingImage.png'
-    }
-  },
-  mounted() {
-    this.getPreviewImages().then().catch()
-  },
-  methods: {
-    async getPreviewImages() {
-      if (this.stream.commits.items.length === 0) return
-      // let angles = [-2, -1, 0, 1, 2]
-      let angles = [0]
-      for (let ang of angles) {
-        let previewUrl = `/preview/${this.stream.id}/objects/${this.stream.commits.items[0].referencedObject}/${ang}`
-        const res = await fetch(previewUrl, {
-          headers: localStorage.getItem('AuthToken')
-            ? { Authorization: `Bearer ${localStorage.getItem('AuthToken')}` }
-            : {}
-        })
-        const blob = await res.blob()
-        const imgUrl = URL.createObjectURL(blob)
-        this.previewImgUrls.push(imgUrl)
-        if (ang === 0) this.currentPreviewImg = imgUrl
-      }
-    }
   }
 }
 </script>
-<style scoped>
-.grasycale-img {
-  transition: all 0.3s;
-  filter: grayscale(100%);
-}
-
-.preview-img {
-  height: 180px;
-  width: 100%;
-  object-fit: cover;
-}
-
-.stream-link a {
-  /* color: inherit; */
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.stream-link a:hover {
-  text-decoration: underline;
-}
-</style>

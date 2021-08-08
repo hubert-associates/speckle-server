@@ -2,129 +2,100 @@
   <v-container :fluid="$vuetify.breakpoint.mdAndDown">
     <v-row>
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
-        <v-card rounded="lg" class="mt-5 mx-5" elevation="0" color="background">
-          <v-card-actions>
-            <v-btn large rounded color="primary" block @click="newStreamDialog = true">
+        <div class="mt-5 mx-5">
+          <div class="d-flex flex-column">
+            <v-btn large rounded color="primary" class="mb-2" block @click="newStreamDialog = true">
               <v-icon small class="mr-1">mdi-plus-box</v-icon>
               new stream
             </v-btn>
-          </v-card-actions>
-          <v-dialog v-model="newStreamDialog" max-width="500">
-            <stream-new-dialog :open="newStreamDialog" />
-          </v-dialog>
-        </v-card>
-        <div v-if="$apollo.loading" class="pa-3 mx-5 mt-5">
-          <v-skeleton-loader type="list-item-three-line"></v-skeleton-loader>
-        </div>
-        <v-card
-          v-else-if="recentActivity"
-          rounded="lg"
-          class="mx-5 mt-3 d-none d-md-block"
-          elevation="0"
-          color="background"
-        >
-          <v-card-title v-if="recentActivity.length > 0" class="subtitle-1 pb-0">
-            Recent Activity
-          </v-card-title>
-          <v-list color="transparent" two-lines class="recent-commits">
-            <div v-for="(a, i) in recentActivity" :key="i">
-              <v-list-item v-if="a.__typename === 'Commit'">
-                <v-list-item-avatar size="30" class="mr-2">
-                  <user-avatar
-                    :id="a.authorId"
-                    :avatar="a.authorAvatar"
-                    :size="30"
-                    :name="a.authorName"
-                  />
-                </v-list-item-avatar>
-                <v-list-item-content>
-                  <v-list-item-title class="subtitle-2">
-                    <router-link
-                      :to="
-                        a.branchName.startsWith('globals')
-                          ? `streams/${a.streamId}/${a.branchName}/${a.id}`
-                          : `streams/${a.streamId}/commits/${a.id}`
-                      "
-                    >
-                      {{ a.message }}
-                    </router-link>
-                  </v-list-item-title>
-                  <v-list-item-subtitle class="caption">
-                    <i>
-                      Sent to
-                      <router-link :to="'streams/' + a.streamId">
-                        {{ a.streamName }}
-                      </router-link>
-                    </i>
-                  </v-list-item-subtitle>
-                </v-list-item-content>
-              </v-list-item>
-
-              <v-list-item v-if="a.__typename === 'Stream'">
-                <v-list-item-content>
-                  <v-list-item-title class="subtitle-2">
-                    <router-link :to="'streams/' + a.id">
-                      {{ a.name }}
-                    </router-link>
-                  </v-list-item-title>
-                  <v-list-item-subtitle class="caption">
-                    <i>A new stream was created</i>
-                  </v-list-item-subtitle>
-                </v-list-item-content>
-              </v-list-item>
-              <v-divider />
-            </div>
-          </v-list>
-          <v-btn small plain color="primary" text class="d-block" @click="showServerInviteDialog">
-            <v-icon small class="mr-2">mdi-email-send-outline</v-icon>
-            Send an invite
-          </v-btn>
+            <v-btn large rounded outlined color="primary" block @click="showServerInviteDialog">
+              <v-icon small class="mr-2">mdi-email-send</v-icon>
+              Send an invite
+            </v-btn>
+          </div>
           <server-invite-dialog ref="serverInviteDialog" />
-        </v-card>
+          <v-dialog v-model="newStreamDialog" max-width="500">
+            <stream-new-dialog
+              v-if="streams && streams.items"
+              :open="newStreamDialog"
+              :redirect="streams.items.length > 0"
+              @created="newStreamDialog = false"
+            />
+          </v-dialog>
+          <div v-if="user" class="my-5">
+            <v-subheader class="mt-3">Your stats:</v-subheader>
+            <div class="ml-5">
+              <p>
+                <v-icon small>mdi-compare-vertical</v-icon>
+                <b>{{ user.streams.totalCount }}</b>
+                streams
+              </p>
+              <p>
+                <v-icon small>mdi-source-commit</v-icon>
+                <b>{{ user.commits.totalCount }}</b>
+                commits
+              </p>
+              <p v-if="user.commits.totalCount > 0">
+                Last commit
+                <b>
+                  <timeago
+                    :datetime="user.commits.items[0].createdAt"
+                    class="font-italic ma-1"
+                  ></timeago>
+                </b>
+              </p>
+            </div>
+          </div>
+        </div>
       </v-col>
       <v-col cols="12" sm="12" md="8" lg="9" xl="10">
-        <div v-if="!$apollo.loading && streams.totalCount === 0" class="pa-4">
-          <no-data-placeholder
-            :message="`Hello there! It seems like you don't have any streams yet. Here's a handful of useful links to help you get started:`"
-          />
-        </div>
-        <v-card v-if="user && user.streams.totalCount > 0" class="my-5" flat>
-          <v-card-text class="body-1">
-            <span>
-              You have
-              <v-icon small>mdi-compare-vertical</v-icon>
-              <b>{{ user.streams.totalCount }}</b>
-              streams and
-              <v-icon small>mdi-source-commit</v-icon>
-              <b>{{ user.commits.totalCount }}</b>
-              commits.
-            </span>
-          </v-card-text>
-        </v-card>
-        <v-card elevation="0" color="transparent">
-          <div v-if="$apollo.loading" class="my-5">
-            <v-skeleton-loader type="list-item-three-line"></v-skeleton-loader>
-          </div>
-        </v-card>
-        <v-row v-if="streams && streams.items">
-          <v-col
-            v-for="(stream, i) in streams.items"
-            :key="i"
-            cols="12"
-            sm="12"
-            md="12"
-            lg="6"
-            xl="4"
-          >
-            <list-item-stream :stream="stream"></list-item-stream>
+        <v-row>
+          <v-col cols="12">
+            <getting-started-wizard />
           </v-col>
-          <infinite-loading
-            v-if="streams.items.length < streams.totalCount"
-            @infinite="infiniteHandler"
-          >
-            <div slot="no-more">These are all your streams!</div>
-            <div slot="no-results">There are no streams to load</div>
-          </infinite-loading>
+          <v-col v-if="$apollo.loading">
+            <v-row>
+              <v-col v-for="i in 6" :key="i" cols="12" sm="12" md="12" lg="6" xl="4">
+                <v-skeleton-loader type="card, list-item-two-line" class="ma-2"></v-skeleton-loader>
+              </v-col>
+            </v-row>
+            <div v-if="$apollo.loading" class="my-5"></div>
+          </v-col>
+
+          <v-col v-else-if="streams && streams.items && streams.items.length > 0">
+            <v-row>
+              <v-col
+                v-for="(stream, i) in streams.items"
+                :key="i"
+                cols="12"
+                sm="12"
+                md="12"
+                lg="6"
+                xl="4"
+              >
+                <list-item-stream :stream="stream"></list-item-stream>
+              </v-col>
+              <infinite-loading
+                v-if="streams.items.length < streams.totalCount"
+                @infinite="infiniteHandler"
+              >
+                <div slot="no-more">These are all your streams!</div>
+                <div slot="no-results">There are no streams to load</div>
+              </infinite-loading>
+            </v-row>
+          </v-col>
+          <v-col v-else cols="12">
+            <div class="ma-5 headline justify-center text-center">
+              😿
+              <br />
+              Your don't have any streams!
+
+              <br />
+              <span class="subtitle-2 font-italic">
+                Create one now with the big blue button to the side.
+              </span>
+            </div>
+          </v-col>
         </v-row>
       </v-col>
     </v-row>
@@ -133,8 +104,7 @@
 <script>
 import ListItemStream from '../components/ListItemStream'
 import StreamNewDialog from '../components/dialogs/StreamNewDialog'
-import NoDataPlaceholder from '../components/NoDataPlaceholder'
-import UserAvatar from '../components/UserAvatar'
+import GettingStartedWizard from '../components/GettingStartedWizard'
 import streamsQuery from '../graphql/streams.gql'
 import userQuery from '../graphql/user.gql'
 import InfiniteLoading from 'vue-infinite-loading'
@@ -147,9 +117,8 @@ export default {
     ListItemStream,
     StreamNewDialog,
     InfiniteLoading,
-    UserAvatar,
-    NoDataPlaceholder,
-    ServerInviteDialog
+    ServerInviteDialog,
+    GettingStartedWizard
   },
   apollo: {
     streams: {
@@ -193,6 +162,7 @@ export default {
     }
   },
   data: () => ({
+    activeTab: 'streams',
     streams: [],
     newStreamDialog: false
   }),
@@ -226,6 +196,10 @@ export default {
     }
   },
   methods: {
+    showServerInviteDialog() {
+      this.$refs.serverInviteDialog.show()
+    },
+
     infiniteHandler($state) {
       this.$apollo.queries.streams.fetchMore({
         variables: {
@@ -259,9 +233,6 @@ export default {
         return -1
       }
       return 0
-    },
-    showServerInviteDialog() {
-      this.$refs.serverInviteDialog.show()
     }
   }
 }
