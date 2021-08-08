@@ -3,10 +3,10 @@
     <v-card-title>New Stream</v-card-title>
     <v-form ref="form" v-model="valid" lazy-validation class="px-2" @submit.prevent="createStream">
       <v-card-text>
-        <p class="">
+        <!-- <p class="">
           <b>Stream Info:</b>
           Name & Description
-        </p>
+        </p> -->
         <v-text-field
           v-model="name"
           :rules="nameRules"
@@ -16,9 +16,19 @@
           label="Stream Name"
         />
         <v-textarea v-model="description" rows="1" row-height="15" label="Description (optional)" />
-        <p class="mt-5">
-          <b>Collaborators:</b>
-          Share this stream with your colleagues!
+        <v-switch
+          v-model="isPublic"
+          v-tooltip="
+            isPublic
+              ? `Anyone can view this stream. It is also visible on your profile page. Only collaborators
+          can edit it.`
+              : `Only collaborators can access this stream.`
+          "
+          :label="`${isPublic ? 'Public stream' : 'Private stream'}`"
+        />
+
+        <p class="mt-5 text-center">
+          <b>Share this stream with your colleagues now! 🤙</b>
         </p>
         <v-text-field
           v-model="search"
@@ -87,7 +97,16 @@ import UserAvatar from '../UserAvatar'
 
 export default {
   components: { UserAvatar },
-  props: ['open'],
+  props: {
+    open: {
+      type: Boolean,
+      default: false
+    },
+    redirect: {
+      type: Boolean,
+      default: true
+    }
+  },
   apollo: {
     userSearch: {
       query: userSearchQuery,
@@ -110,7 +129,7 @@ export default {
       valid: false,
       search: null,
       nameRules: [],
-      isPublic: true,
+      isPublic: false,
       collabs: [],
       isLoading: false
     }
@@ -159,7 +178,8 @@ export default {
           variables: {
             myStream: {
               name: this.name,
-              isPublic: this.isPublic
+              isPublic: this.isPublic,
+              description: this.description
             }
           }
         })
@@ -183,7 +203,7 @@ export default {
           }
         }
         this.$emit('created')
-        this.$router.push({ path: `/streams/${res.data.streamCreate}` })
+        if (this.redirect) this.$router.push({ path: `/streams/${res.data.streamCreate}` })
       } catch (e) {
         console.log(e)
       }

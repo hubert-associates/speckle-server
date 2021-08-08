@@ -28,7 +28,7 @@ let graphqlServer
 
 /**
  * Initialises the express application together with the graphql server middleware.
- * @return {[type]} an express applicaiton and the graphql server
+ * @return {[type]} an express application and the graphql server
  */
 exports.init = async ( ) => {
   const app = express( )
@@ -161,5 +161,9 @@ exports.startHttp = async ( app, customPortOverride ) => {
   } )
   debug( 'speckle:startup' )( `rht1.2 bindAddress= ${bindAddress}` )
   server.listen( port, bindAddress )
+
+  server.keepAliveTimeout = 61 * 1000
+  server.headersTimeout = 65 * 1000
+
   return { server }
 }
